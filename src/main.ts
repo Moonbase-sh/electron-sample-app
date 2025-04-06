@@ -1,10 +1,98 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import open from 'open'
 import started from 'electron-squirrel-startup';
+import { ErrorType, FileLicenseStore, License, MoonbaseError, MoonbaseLicensing } from '@moonbase.sh/licensing';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
+}
+
+const licensing = new MoonbaseLicensing({
+  productId: 'demo-app',
+  endpoint: 'https://demo.moonbase.sh',
+  publicKey: `-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAutOqeUiPMgYjAwQ53CyKhJSqojr2bejce0CshQi9Hd8mNZbkoROx
+oS56eIzehFSlX4YwHnF47AR1+fPOe7Q33Cgzd6d9xqksiMH7sWK2mADIlB66vZdW
+uk3Me0UMB22Biy1RQbSRMivu79MxCofsympoL/5CFjJLd1u37kxjuRWVLjJS84Rr
+3L2W7R7Exnno/giC+L/Dv711mjgstmtlAQm5ZINvFvoLA1eFTDs6nlCs3dpJSiq3
+fsBUMT9FtudzS5As54jeT/8MB66fJJ0A1LQ/v5CW8ACQYseFSIoOKErD3xU7QLIJ
+ERUn++6CVMPvZo67jVbTY+GCXYfW4gGVZQIDAQAB
+-----END RSA PUBLIC KEY-----`,
+
+  licenseStore: new FileLicenseStore(),
+})
+
+const withLicensing = async (next: () => void) => {
+  const localLicense = await licensing.store.loadLocalLicense();
+  if (!localLicense) {
+    // We didn't find an existing license; show the activation UI
+    createLicenseActivationWindow()
+  } else {
+    try {
+      // There is a local license; let's quickly validate it
+      const validatedLicense = await licensing.client.validateLicense(localLicense);
+  
+      // Now that we have an updated license, persist it
+      await licensing.store.storeLocalLicense(validatedLicense);
+
+      // License has been validated, the app can now start
+      next()
+    } catch (err) {
+      if (err instanceof MoonbaseError && (err.type === ErrorType.LicenseExpired || err.type === ErrorType.LicenseInvalid || err.type === ErrorType.LicenseRevoked)) {
+        // The license is no longer valid, remove the local one and show the gate
+        await licensing.store.deleteLocalLicense()
+        createLicenseActivationWindow()
+      }
+      throw err
+    }
+  }
+}
+
+const createLicenseActivationWindow = () => {
+  // Create the browser window.
+  const licenseActivationWindow = new BrowserWindow({
+    width: 320,
+    height: 420,
+    webPreferences: {
+      preload: path.join(__dirname, 'licensing-preload.js'),
+    },
+    resizable: false,
+  });
+
+  // and load the index.html of the app.
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    licenseActivationWindow.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}/license-activation.html`);
+  } else {
+    licenseActivationWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/license-activation.html`));
+  }
+
+  // Open the DevTools.
+  licenseActivationWindow.webContents.openDevTools({mode: 'detach'});
+
+  ipcMain.handle('licensing:activate', async () => {
+    // Once license activation starts, we want to request an activation:
+    const activationRequest = await licensing.client.requestActivation()
+
+    // Since this is completed in the native browser of the device, start the URL normally:
+    open(activationRequest.browser)
+
+    // Then we can start polling for completion:
+    let license: License | null = null
+
+    do {
+      await new Promise((resolve) => setTimeout(() => resolve(void 0), 1000))
+      license = await licensing.client.getRequestedActivation(activationRequest)
+    } while (license == null)
+
+    // We finally got a license to activate with; persist it so we can load it on next start
+    await licensing.store.storeLocalLicense(license)
+
+    // Then we can hide the license activation window and show the main window
+    licenseActivationWindow.close()
+    createWindow()
+  })
 }
 
 const createWindow = () => {
@@ -25,13 +113,13 @@ const createWindow = () => {
   }
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools({mode: 'detach'});
 };
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', () => withLicensing(createWindow));
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -46,7 +134,7 @@ app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    withLicensing(createWindow);
   }
 });
 

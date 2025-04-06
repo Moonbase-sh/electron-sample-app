@@ -2,7 +2,7 @@
   "name": "electron-sample-app",
   "productName": "electron-sample-app",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Sample Electron app implementation using Moonbase.sh for licensing",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
@@ -14,7 +14,7 @@
   "keywords": [],
   "author": {
     "name": "Tobias Lønnerød Madsen",
-    "email": "m@dsen.tv"
+    "email": "tobias@moonbase.sh"
   },
   "license": "MIT",
   "devDependencies": {
@@ -37,6 +37,8 @@
     "vite": "^5.4.17"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "@moonbase.sh/licensing": "^0.3.37",
+    "electron-squirrel-startup": "^1.0.1",
+    "open": "^10.1.0"
   }
 }
