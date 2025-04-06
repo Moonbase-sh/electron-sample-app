@@ -11,6 +11,8 @@ if (started) {
 }
 
 const withLicensing = async (next: () => void) => {
+  // This guard will check for a local license, and either start the actual
+  // main window if still valid, or open the license activation flow instead.
   const localLicense = await licensing.store.loadLocalLicense();
   if (!localLicense) {
     // We didn't find an existing license; show the activation UI
