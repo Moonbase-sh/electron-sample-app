@@ -2,27 +2,13 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import open from 'open'
 import started from 'electron-squirrel-startup';
-import { ErrorType, FileLicenseStore, License, MoonbaseError, MoonbaseLicensing } from '@moonbase.sh/licensing';
+import { ErrorType, License, MoonbaseError } from '@moonbase.sh/licensing';
+import licensing from './licensing';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
-
-const licensing = new MoonbaseLicensing({
-  productId: 'demo-app',
-  endpoint: 'https://demo.moonbase.sh',
-  publicKey: `-----BEGIN RSA PUBLIC KEY-----
-MIIBCgKCAQEAutOqeUiPMgYjAwQ53CyKhJSqojr2bejce0CshQi9Hd8mNZbkoROx
-oS56eIzehFSlX4YwHnF47AR1+fPOe7Q33Cgzd6d9xqksiMH7sWK2mADIlB66vZdW
-uk3Me0UMB22Biy1RQbSRMivu79MxCofsympoL/5CFjJLd1u37kxjuRWVLjJS84Rr
-3L2W7R7Exnno/giC+L/Dv711mjgstmtlAQm5ZINvFvoLA1eFTDs6nlCs3dpJSiq3
-fsBUMT9FtudzS5As54jeT/8MB66fJJ0A1LQ/v5CW8ACQYseFSIoOKErD3xU7QLIJ
-ERUn++6CVMPvZo67jVbTY+GCXYfW4gGVZQIDAQAB
------END RSA PUBLIC KEY-----`,
-
-  licenseStore: new FileLicenseStore(),
-})
 
 const withLicensing = async (next: () => void) => {
   const localLicense = await licensing.store.loadLocalLicense();
@@ -140,3 +126,8 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+// We also expose a simple IPC method to get the current license
+ipcMain.handle('licensing:get', async () => {
+  return await licensing.store.loadLocalLicense()
+})

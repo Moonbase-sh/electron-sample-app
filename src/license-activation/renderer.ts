@@ -1,9 +1,5 @@
 import './index.css';
 
-declare global {
-    interface Window { licensing: { startActivation: () => Promise<void> } }
-}
-
 window.addEventListener('DOMContentLoaded', () => {
     const activateButton = document.getElementById('activate')
 
@@ -14,7 +10,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
         try {
             // We also need to call the backend licensing API to start the backend process:
-            await window.licensing.startActivation()
+            const api = (window as unknown as { licensing: { startActivation: () => Promise<void> } }).licensing
+            await api.startActivation()
         } catch (err) {
             // TODO: Show error
             console.error('Could not activate app', err)
