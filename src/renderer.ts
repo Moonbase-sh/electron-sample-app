@@ -26,7 +26,7 @@
  * ```
  */
 
-import { License } from '@moonbase.sh/licensing';
+import type { License } from '@moonbase.sh/licensing';
 import './index.css';
 
 console.log('👋 This message is being logged by "renderer.ts", included via Vite');
