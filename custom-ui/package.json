@@ -1,8 +1,8 @@
 {
-  "name": "electron-sample-app",
-  "productName": "electron-sample-app",
+  "name": "electron-sample-custom-ui",
+  "productName": "electron-sample-custom-ui",
   "version": "1.0.0",
-  "description": "Sample Electron app implementation using Moonbase.sh for licensing",
+  "description": "Sample Electron app using Moonbase.sh for licensing, with its own activation UI",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
