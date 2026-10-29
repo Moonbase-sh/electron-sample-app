@@ -10,15 +10,6 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    // The Vite plugin packages only its own build in .vite. @moonbase.sh/electron
-    // is not bundled (see vite.main.config.ts), so the app also ships the production
-    // dependencies in node_modules; Electron Packager leaves out the dev dependencies.
-    ignore: (file) => {
-      if (!file) return false;
-      // npm's own files in node_modules (.bin, .package-lock.json) stay behind
-      if (file.startsWith('/node_modules/.')) return true;
-      return !file.startsWith('/.vite') && !file.startsWith('/node_modules');
-    },
   },
   rebuildConfig: {},
   makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],

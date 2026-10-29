@@ -78,21 +78,7 @@ const start = () => {
 app.on('ready', start);
 ```
 
-On macOS the app stays open after its last window closes, and the overlay closes with that window, so a window opened from the dock is locked again:
-
-```ts
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-
-    // The activation UI closed with the last window, so lock the new one too
-    if (!moonbase.isLicensed()) {
-      void moonbase.present();
-    }
-  }
-});
-```
-
+When the locked window closes, the overlay moves to the next window the app opens, such as the one a macOS app opens again from the dock.
 The overlay locks the interface, so gate your paid features in the main process too, where a renderer cannot skip the check:
 
 ```ts
@@ -112,9 +98,12 @@ import { exposeMoonbase } from "@moonbase.sh/electron/preload";
 exposeMoonbase()
 ```
 
-The [renderer](./built-in-ui/src/renderer.ts) then shows the license, and updates it whenever it changes. The **Manage license** button opens the built-in license details, where the customer can copy their license ID for support or deactivate this device:
+The [renderer](./built-in-ui/src/renderer.ts) then shows the license, and updates it whenever it changes. Importing its types from `@moonbase.sh/electron/renderer` also types `window.moonbase`. The **Manage license** button opens the built-in license details, where the customer can copy their license ID for support or deactivate this device:
 
 ```ts
+import type { ActivationState } from '@moonbase.sh/electron/renderer';
+
+const moonbase = window.moonbase
 moonbase.onStateChanged(render)
 render(await moonbase.state())
 
@@ -123,34 +112,22 @@ document.getElementById('manage-license').addEventListener('click', () => moonba
 
 To build your own UI on top of the module instead, pass `ui: false` and drive activation through `window.moonbase` with the default `rendererAccess`.
 
-### Keep the module out of the bundle
+### Bundle the activation UI
 
-The module loads its activation UI from its own folder in `node_modules`, but Electron Forge's Vite plugin bundles every dependency into the main process and packages nothing but its own build.
-So [vite.main.config.ts](./built-in-ui/vite.main.config.ts) leaves the module out of the bundle:
+The module loads its activation UI from the folder it runs from, and Electron Forge's Vite plugin bundles every dependency into the main process.
+So [vite.main.config.ts](./built-in-ui/vite.main.config.ts) adds the module's Vite plugin, which copies the UI beside the bundle:
 
 ```ts
+import { defineConfig } from 'vite';
+import { moonbase } from '@moonbase.sh/electron/vite';
+
 export default defineConfig({
-  build: {
-    rollupOptions: {
-      external: ['@moonbase.sh/electron'],
-    },
-  },
+  plugins: [moonbase()],
 });
 ```
 
-And [forge.config.ts](./built-in-ui/forge.config.ts) ships the production dependencies in `node_modules` alongside the build. Electron Packager leaves out the dev dependencies:
-
-```ts
-packagerConfig: {
-  asar: true,
-  ignore: (file) => {
-    if (!file) return false;
-    // npm's own files in node_modules (.bin, .package-lock.json) stay behind
-    if (file.startsWith('/node_modules/.')) return true;
-    return !file.startsWith('/.vite') && !file.startsWith('/node_modules');
-  },
-},
-```
+With another bundler, see [bundling the main process](https://www.npmjs.com/package/@moonbase.sh/electron#bundling-the-main-process).
+If the UI is missing, `moonbase.start()` throws and names the folder it looked in.
 
 ## Custom UI: `@moonbase.sh/licensing`
 

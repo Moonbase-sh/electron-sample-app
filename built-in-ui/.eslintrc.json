@@ -12,15 +12,5 @@
     "plugin:import/electron",
     "plugin:import/typescript"
   ],
-  "parser": "@typescript-eslint/parser",
-  "rules": {
-    "import/no-unresolved": [
-      "error",
-      {
-        "ignore": [
-          "^@moonbase\\.sh/electron/preload$"
-        ]
-      }
-    ]
-  }
+  "parser": "@typescript-eslint/parser"
 }

@@ -55,11 +55,6 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
-
-    // The activation UI closed with the last window, so lock the new one too
-    if (!moonbase.isLicensed()) {
-      void moonbase.present();
-    }
   }
 });
 

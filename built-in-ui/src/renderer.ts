@@ -6,11 +6,12 @@
  * https://electronjs.org/docs/tutorial/process-model
  */
 
-import type { ActivationState, MoonbaseRendererApi } from '@moonbase.sh/electron/preload';
+// Importing from the renderer entry also types window.moonbase, which the preload exposes
+import type { ActivationState } from '@moonbase.sh/electron/renderer';
 import './index.css';
 
 window.addEventListener('DOMContentLoaded', async () => {
-    const moonbase = (window as unknown as { moonbase: MoonbaseRendererApi }).moonbase
+    const moonbase = window.moonbase
     const detailsElement = document.getElementById('license-details')
 
     const row = (label: string, value: string) => {
