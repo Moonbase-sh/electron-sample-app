@@ -1,0 +1,21 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  margin: auto;
+  max-width: 38rem;
+  padding: 2rem;
+}
+
+#license-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+}
+
+#license-details dt {
+  font-weight: bold;
+}
+
+#license-details dd {
+  margin: 0;
+}

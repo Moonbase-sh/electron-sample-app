@@ -1,19 +1,139 @@
-# Moonbase.sh Electron Sample App
+# Moonbase.sh Electron Sample Apps
 
-This app is a simple example of how to integrate Moonbase.sh for licensing into Electron apps.
-It's based on the vite-typescript Electron Forge template, and runs all the licensing code in the node process to get privileged access to system information for fingerprinting.
+These apps show two ways to integrate Moonbase.sh for licensing into an Electron app.
+Both are based on the vite-typescript Electron Forge template, run all the licensing code in the main process to get privileged access to system information for fingerprinting, and are wired to Moonbase's public demo store (`demo.moonbase.sh`, product `demo-app`), so they activate out of the box.
+
+| Example | Package | Pick it when |
+| --- | --- | --- |
+| [Built-in UI](#built-in-ui-moonbaseshelectron) | [`@moonbase.sh/electron`](https://www.npmjs.com/package/@moonbase.sh/electron) | You want a finished activation UI: online and offline activation, trials, license details, deactivation and updates, with no renderer code |
+| [Custom UI](#custom-ui-moonbaseshlicensing) | [`@moonbase.sh/licensing`](https://www.npmjs.com/package/@moonbase.sh/licensing) | You want to design the activation flow yourself, and drive the SDK directly |
+
+Each example is a standalone app, so you can copy either folder to start your own.
 
 ## Getting started
 
-Clone the repo and run the start script:
+Clone the repo, pick an example, and run the start script:
 
 ```bash
+cd built-in-ui # or custom-ui
+npm install
 npm run start
 ```
 
-## Relevant changes
+## Built-in UI: `@moonbase.sh/electron`
 
-To integrate the licensing bits, we've done a couple of things to the app:
+![The built-in activation UI locking the main window](./docs/built-in-ui.png)
+
+[`@moonbase.sh/electron`](https://www.npmjs.com/package/@moonbase.sh/electron) builds on the licensing SDK, and brings the same activation UI as Moonbase's JUCE module and Tauri plugin.
+It validates the stored license at startup, presents the UI whenever the app has no license, and keeps watching the license while the app runs.
+In this example the UI is laid over the main window, which stays blurred and locked until the app is licensed.
+
+### Add the module
+
+We ran `npm install --save @moonbase.sh/electron`, and then created the [licensing.ts](./built-in-ui/src/licensing.ts) file to store the configuration in:
+
+```ts
+import { createMoonbase } from "@moonbase.sh/electron"
+
+// The license is kept in license.mb in the app's user data folder, and
+// app.getVersion() is reported to Moonbase, so neither needs setting here
+const moonbase = createMoonbase({
+    productId: 'demo-app',
+    endpoint: 'https://demo.moonbase.sh',
+    publicKey: `-----BEGIN RSA PUBLIC KEY-----
+...
+-----END RSA PUBLIC KEY-----`,
+
+    // The built-in activation UI, which presents itself whenever the app has no license
+    ui: {
+        productName: 'Electron Sample App',
+
+        // Lay the activation UI over the main window, which stays locked until the
+        // app is licensed. Leave this out to show it in a window of its own instead,
+        // for an app that stays usable without a license.
+        presentation: 'overlay',
+    },
+
+    // The main window only shows the license and opens the activation UI, so that
+    // is all its renderer may do through window.moonbase
+    rendererAccess: 'read-only',
+})
+
+export default moonbase
+```
+
+The UI can carry your brand: an accent colour, your logo, the features of your trial, and your own copy for every screen.
+See [the activation UI options](https://www.npmjs.com/package/@moonbase.sh/electron#the-activation-ui) for all of them.
+
+### Start it
+
+[main.ts](./built-in-ui/src/main.ts) starts the module and opens the main window right away. There is no license check to write: while the app has no license, the module locks that window.
+
+```ts
+const start = () => {
+  moonbase.start();
+  createWindow();
+};
+
+app.on('ready', start);
+```
+
+When the locked window closes, the overlay moves to the next window the app opens, such as the one a macOS app opens again from the dock.
+The overlay locks the interface, so gate your paid features in the main process too, where a renderer cannot skip the check:
+
+```ts
+if (!moonbase.isLicensed()) {
+  void moonbase.present();
+  return;
+}
+```
+
+### Show the license in the app
+
+The [preload script](./built-in-ui/src/preload.ts) exposes the module's renderer API as `window.moonbase`:
+
+```ts
+import { exposeMoonbase } from "@moonbase.sh/electron/preload";
+
+exposeMoonbase()
+```
+
+The [renderer](./built-in-ui/src/renderer.ts) then shows the license, and updates it whenever it changes. Importing its types from `@moonbase.sh/electron/renderer` also types `window.moonbase`. The **Manage license** button opens the built-in license details, where the customer can copy their license ID for support or deactivate this device:
+
+```ts
+import type { ActivationState } from '@moonbase.sh/electron/renderer';
+
+const moonbase = window.moonbase
+moonbase.onStateChanged(render)
+render(await moonbase.state())
+
+document.getElementById('manage-license').addEventListener('click', () => moonbase.present({ screen: 'license' }))
+```
+
+To build your own UI on top of the module instead, pass `ui: false` and drive activation through `window.moonbase` with the default `rendererAccess`.
+
+### Bundle the activation UI
+
+The module loads its activation UI from the folder it runs from, and Electron Forge's Vite plugin bundles every dependency into the main process.
+So [vite.main.config.ts](./built-in-ui/vite.main.config.ts) adds the module's Vite plugin, which copies the UI beside the bundle:
+
+```ts
+import { defineConfig } from 'vite';
+import { moonbase } from '@moonbase.sh/electron/vite';
+
+export default defineConfig({
+  plugins: [moonbase()],
+});
+```
+
+With another bundler, see [bundling the main process](https://www.npmjs.com/package/@moonbase.sh/electron#bundling-the-main-process).
+If the UI is missing, `moonbase.start()` throws and names the folder it looked in.
+
+## Custom UI: `@moonbase.sh/licensing`
+
+![The custom license activation window](./docs/custom-ui.png)
+
+This example drives the licensing SDK directly from the main process, and has a separate window of its own for license activation.
 
 ### Add the Moonbase SDK
 
@@ -25,7 +145,7 @@ The Moonbase node.js SDK comes with the baseline features you need to:
 4. Persist licenses to disk
 
 Much of this is configurable, and you can also inject your own functionality for overriding certain behaviour.
-We ran `npm install --save @moonbase.sh/licensing`, and then created the [licensing.ts](./src/licensing.ts) file to store the configuration in:
+We ran `npm install --save @moonbase.sh/licensing`, and then created the [licensing.ts](./custom-ui/src/licensing.ts) file to store the configuration in:
 
 ```ts
 import { app } from "electron"
@@ -55,7 +175,7 @@ The SDK also reports the platform automatically, and you can attach your own `me
 
 ### Check license validity on startup
 
-When the Electron app starts, [main.ts](./src/main.ts) checks for a valid license, and opens the license activation window instead of the main window if there is none:
+When the Electron app starts, [main.ts](./custom-ui/src/main.ts) checks for a valid license, and opens the license activation window instead of the main window if there is none:
 
 ```ts
 const start = async () => {
@@ -81,16 +201,16 @@ To limit how long the app runs without reaching Moonbase, compare `license.valid
 
 ### Build a license activation window
 
-In this sample app, we've opted to have a completely separate page and window for this, but you can choose to instead incorporate it into your main window. Like most Electron apps, this license activation window has:
+In this example, we've opted to have a completely separate page and window for this, but you can choose to instead incorporate it into your main window. Like most Electron apps, this license activation window has:
 
-* Markup: [license-activation.html](./license-activation.html)
-* Preload: [licensing-preload.ts](./src/license-activation/licensing-preload.ts)
-* Renderer: [renderer.ts](./src/license-activation/renderer.ts)
+* Markup: [license-activation.html](./custom-ui/license-activation.html)
+* Preload: [licensing-preload.ts](./custom-ui/src/license-activation/licensing-preload.ts)
+* Renderer: [renderer.ts](./custom-ui/src/license-activation/renderer.ts)
 
-The page is an extra entry in [vite.renderer.config.ts](./vite.renderer.config.ts), so it is included when the app is packaged.
+The page is an extra entry in [vite.renderer.config.ts](./custom-ui/vite.renderer.config.ts), so it is included when the app is packaged.
 
 The renderer is a very simple binding to the API provided by the preload script, and the preload script simply forwards any calls to the main IPC handlers that can execute licensing code in the node process.
-Those handlers are registered once in [main.ts](./src/main.ts), and act on whichever window called them:
+Those handlers are registered once in [main.ts](./custom-ui/src/main.ts), and act on whichever window called them:
 
 ```ts
 ipcMain.handle('licensing:activate', async (event) => {
@@ -127,11 +247,12 @@ For customers without internet access, the window also supports offline activati
 
 Errors thrown by the SDK carry Moonbase's own message (for example that a license was revoked), which the activation window shows to the customer.
 
-### Upgrading from an older SDK
+## Upgrading from an older SDK
 
-Version 3 of `@moonbase.sh/licensing` computes device ids with the cross-SDK Moonbase device fingerprint, so a license activated with an older version reports `LicenseDeviceMismatch` and the customer activates again.
+Version 3 of `@moonbase.sh/licensing`, which both examples use, computes device ids with the cross-SDK Moonbase device fingerprint, so a license activated with an older version reports `LicenseDeviceMismatch` and the customer activates again.
 If you already have customers, see "Migrating from v2.x" in the [SDK readme](https://www.npmjs.com/package/@moonbase.sh/licensing) for `MigratingDeviceIdResolver`, which keeps accepting the old device id while new activations bind the new one.
+`createMoonbase` takes the same `deviceIdResolver` option as `MoonbaseLicensing`.
 
-## Questions about this sample?
+## Questions about these samples?
 
 Please reach out to us through the support channel in the app or at developers@moonbase.sh!
