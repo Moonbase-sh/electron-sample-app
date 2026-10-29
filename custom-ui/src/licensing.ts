@@ -1,7 +1,10 @@
-import { app } from "electron"
-import { FileLicenseStore, MoonbaseLicensing } from "@moonbase.sh/licensing"
+import { app, shell } from "electron"
+import { ActivationController } from "@moonbase.sh/licensing"
+import path from "node:path"
 
-const licensing = new MoonbaseLicensing({
+// The activation state machine: it validates the stored license, runs browser and
+// offline activation, and keeps watching the license while the app runs
+const licensing = new ActivationController({
     productId: 'demo-app',
     endpoint: 'https://demo.moonbase.sh',
     publicKey: `-----BEGIN RSA PUBLIC KEY-----
@@ -17,9 +20,12 @@ ERUn++6CVMPvZo67jVbTY+GCXYfW4gGVZQIDAQAB
     // versions of your app your customers are running
     appVersion: app.getVersion(),
 
-    // Keep the license with the rest of the app's data. The default is the
-    // working directory, which a packaged app usually cannot write to.
-    licenseStore: new FileLicenseStore({ dir: app.getPath('userData') }),
+    // Keep the license with the rest of the app's data, as a packaged app
+    // usually cannot write to its working directory
+    licenseFile: path.join(app.getPath('userData'), 'license.mb'),
+
+    // Customers activate in their own browser
+    openUrl: (url) => shell.openExternal(url),
 })
 
 export default licensing
