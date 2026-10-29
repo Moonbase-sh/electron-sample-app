@@ -2,13 +2,31 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
+    <title>Electron Sample App</title>
 
   </head>
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
-    <p id="license-details"></p>
+    <header class="app-header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+      </div>
+      <strong>Electron Sample App</strong>
+      <span id="status" class="badge"></span>
+    </header>
+    <main class="page">
+      <h1 id="greeting">Welcome</h1>
+      <p id="summary" class="lead"></p>
+      <p id="update" class="notice" hidden></p>
+      <p id="error" class="error" role="alert" hidden></p>
+      <section class="card">
+        <h2>Your license</h2>
+        <dl id="license-details"></dl>
+      </section>
+      <div class="actions">
+        <button id="deactivate">Deactivate this computer</button>
+      </div>
+      <p id="deactivate-hint" class="hint"></p>
+    </main>
     <script type="module" src="/src/renderer.ts"></script>
   </body>
 </html>

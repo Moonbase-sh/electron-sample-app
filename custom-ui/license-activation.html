@@ -2,26 +2,62 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Activate app</title>
+    <title>Activate Electron Sample App</title>
 
   </head>
   <body>
-    <h1>🔒 Activate app</h1>
-    <p>This app requires a license, click the button below to get started</p>
-    <button id="activate">
-      Activate
-    </button>
-    <button id="activate-offline">
-      Activate offline
-    </button>
-    <button id="select-license">
-      Select license
-    </button>
-    <p id="offline-instructions" hidden>
-      Please upload the device token to <a href="https://demo.moonbase.sh/activate" target="_blank">https://demo.moonbase.sh/activate</a>,
-      then select the license file you get back.
-    </p>
-    <p id="error" hidden></p>
+    <main class="activation">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+      </div>
+      <h1>Activate Electron Sample App</h1>
+
+      <!-- Why the app is locked, and the last failure, as the license state says -->
+      <p id="notice" class="notice" hidden></p>
+      <p id="error" class="error" role="alert" hidden></p>
+
+      <section id="welcome">
+        <p id="welcome-lead" class="lead"></p>
+        <button id="activate" class="primary wide">Activate in your browser</button>
+      </section>
+
+      <section id="activating" hidden>
+        <div class="waiting">
+          <span class="spinner"></span>
+          <strong>Waiting for your browser</strong>
+        </div>
+        <p id="activating-lead" class="lead"></p>
+        <div class="actions">
+          <a id="activation-link" class="button" target="_blank">Open activation page</a>
+          <button id="cancel-activation">Cancel</button>
+        </div>
+      </section>
+
+      <section id="not-covered" hidden>
+        <div class="actions">
+          <button id="upgrade" class="primary">Upgrade license</button>
+          <button id="check-again">Check again</button>
+        </div>
+      </section>
+
+      <details id="offline">
+        <summary>No internet on this computer?</summary>
+        <ol class="steps">
+          <li>
+            <button id="activate-offline">Save device token</button>
+            <span id="device-token-saved" class="saved" hidden>Saved</span>
+          </li>
+          <li>
+            On a computer that's online, upload it at
+            <a href="https://demo.moonbase.sh/activate" target="_blank">demo.moonbase.sh/activate</a>,
+            and bring back the license file you get
+          </li>
+          <li>
+            <button id="select-license">Select license file</button>
+          </li>
+        </ol>
+      </details>
+    </main>
     <script type="module" src="/src/license-activation/renderer.ts"></script>
   </body>
 </html>

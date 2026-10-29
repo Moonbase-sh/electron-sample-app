@@ -1,11 +1,74 @@
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
-  margin: auto;
-  max-width: 100%;
+/* The license activation window, on top of the shared ../index.css */
+
+.activation {
   padding: 2rem;
 }
 
-#error {
-  color: #c62828;
+.activation .logo {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  margin-bottom: 1rem;
+}
+
+.activation h1 {
+  margin-bottom: 1rem;
+}
+
+button.wide {
+  width: 100%;
+  padding: 0.75rem 1rem;
+}
+
+/* The link to the activation page, which looks like the button beside it */
+a.button {
+  font-weight: 500;
+  text-decoration: none;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 0.5rem;
+  padding: 0.55rem 1rem;
+}
+
+a.button:hover {
+  background: var(--accent-hover);
+}
+
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+#offline {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+#offline summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.steps {
+  margin: 1rem 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.steps li {
+  padding-left: 0.25rem;
+  color: var(--muted);
+}
+
+.steps button {
+  margin-right: 0.25rem;
+}
+
+.saved {
+  color: var(--success);
+  font-weight: 500;
 }
